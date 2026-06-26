@@ -21,6 +21,6 @@ window.ANALYTICS_CONFIG = {
   // This is the secret hash in the admin URL: admin.html#YOUR_SECRET
   // Choose anything personal and hard to guess
   // e.g. "altaf-1994-admin" or "ramgarh-secret-99"
-  adminSecret:  "altaf-admin-2024",
+  adminSecret:  "S@m-2026-@dmin",
 
 };
