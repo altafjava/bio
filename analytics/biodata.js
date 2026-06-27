@@ -422,10 +422,45 @@
       trackSessionEnd();
     }
 
+    // ── Profile settings: show/hide CTC and plot asset ────────
+    async function applySettings() {
+      const ctcEl  = document.getElementById('ctc-inject');
+      const plotEl = document.getElementById('plot-inject');
+      if (!ctcEl && !plotEl) return; // not on index.html
+      try {
+        const res = await supabaseFetch('/rest/v1/biodata_settings?select=key,value', {
+          headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY },
+        });
+        if (!res || !res.ok) return;
+        const rows = await res.json();
+        const s = {};
+        rows.forEach(r => { s[r.key] = r.value; });
+
+        if (s.show_ctc === 'true' && ctcEl) {
+          ctcEl.innerHTML =
+            '<div class="info-item">' +
+              '<span class="label">Annual CTC</span>' +
+              '<span class="value">₹40 LPA</span>' +
+            '</div>';
+        }
+        if (s.show_plot === 'true' && plotEl) {
+          plotEl.innerHTML =
+            '<div class="assets-section">' +
+              '<h4 class="assets-heading"><i class="fas fa-map-marker-alt"></i> Assets</h4>' +
+              '<div class="info-item info-item-full">' +
+                '<span class="label">Property</span>' +
+                '<span class="value">Own residential &amp; commercial plot near Ranchi &middot; 5.4 dismil &middot; approx. ₹50 Lakhs</span>' +
+              '</div>' +
+            '</div>';
+        }
+      } catch (e) { /* non-critical — silently skip */ }
+    }
+
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
+      document.addEventListener('DOMContentLoaded', function () { init(); applySettings(); });
     } else {
       init();
+      applySettings();
     }
   });
 

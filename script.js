@@ -51,6 +51,16 @@ function handlePhoneClick(event) {
   event.preventDefault();
 }
 
+// Auto-compute and display age from fixed birth month/year
+(function () {
+  var el = document.getElementById('bio-age');
+  if (!el) return;
+  var now = new Date();
+  // October = month index 9 (0-based)
+  var age = now.getFullYear() - 1994 - (now.getMonth() < 9 ? 1 : 0);
+  el.textContent = age + ' years';
+})();
+
 function showToast(message) {
   const toast = document.createElement("div");
   toast.className = "toast";

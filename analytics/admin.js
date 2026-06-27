@@ -934,6 +934,77 @@ function initAdmin(cfg) {
     if (el) el.classList.add('hidden');
   }
 
+  // ── Profile Settings ──────────────────────────────────────
+  const SETTINGS_DEFS = [
+    { key: 'show_ctc',  label: 'Annual CTC',     sub: 'Shows ₹40 LPA in Professional Details on the biodata page' },
+    { key: 'show_plot', label: 'Property / Plot', sub: 'Shows Ranchi plot (5.4 dismil · ~₹50 Lakhs) under Family Background' },
+  ];
+
+  async function fetchSettings() {
+    const res = await supabaseFetch('/rest/v1/biodata_settings?select=key,value', { headers: {} });
+    if (!res || !res.ok) return {};
+    const rows = await res.json();
+    const map = {};
+    rows.forEach(r => { map[r.key] = r.value; });
+    return map;
+  }
+
+  async function saveSettings(key, value) {
+    await supabaseFetch('/rest/v1/biodata_settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify({ key, value, updated_at: new Date().toISOString() }),
+    });
+  }
+
+  function renderSettings(settings) {
+    const list = document.getElementById('settings-list');
+    if (!list) return;
+    list.innerHTML = SETTINGS_DEFS.map(def => {
+      const isOn = settings[def.key] === 'true';
+      return `<div class="settings-row">
+        <div class="settings-row-info">
+          <span class="settings-row-label">${def.label}</span>
+          <span class="settings-row-sub">${def.sub}</span>
+        </div>
+        <label class="toggle" title="${isOn ? 'Visible on biodata' : 'Hidden on biodata'}">
+          <input type="checkbox" data-key="${def.key}"${isOn ? ' checked' : ''}>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('.toggle input').forEach(cb => {
+      cb.addEventListener('change', async function () {
+        const key = this.dataset.key;
+        const val = this.checked ? 'true' : 'false';
+        this.disabled = true;
+        try {
+          await saveSettings(key, val);
+        } catch(e) {
+          this.checked = !this.checked; // revert on failure
+          alert('Failed to save setting. Check your connection.');
+        } finally {
+          this.disabled = false;
+        }
+      });
+    });
+  }
+
+  async function loadSettings() {
+    const list = document.getElementById('settings-list');
+    if (list) list.innerHTML = '<div class="settings-loading">Loading settings…</div>';
+    try {
+      const s = await fetchSettings();
+      renderSettings(s);
+    } catch(e) {
+      if (list) list.innerHTML = '<div class="settings-loading" style="color:#e11d48">Failed to load settings.</div>';
+    }
+  }
+
   // ── Load ──────────────────────────────────────────────────
   let allRows    = [];
   let allGallery = [];
@@ -1010,6 +1081,7 @@ function initAdmin(cfg) {
     'photo-activity':  'Per-recipient photo drill-down — click any row to expand',
     devices:           'Device & browser breakdown',
     geo:               'Location & ISP data',
+    settings:          'Control what appears on your public biodata page',
   };
 
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -1022,7 +1094,8 @@ function initAdmin(cfg) {
       document.getElementById(`section-${sec}`).classList.add('active');
       document.getElementById('section-title').textContent = item.textContent.trim();
       document.getElementById('section-sub').textContent   = subtitles[sec] || '';
-      if (allRows.length || allGallery.length) {
+      if (sec === 'settings') { loadSettings(); }
+      else if (allRows.length || allGallery.length) {
         if (sec === 'overview')        renderOverview(allRows, allGallery);
         if (sec === 'devices')         renderDevices(allRows);
         if (sec === 'geo')             renderGeo(allRows);

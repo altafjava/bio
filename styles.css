@@ -180,6 +180,7 @@ section::before {
 }
 
 /* Per-section left border colors */
+.about-me::before             { background: #0097a7; }
 .personal-info::before        { background: #2962ff; }
 .religious-profile::before    { background: #2e7d52; }
 .professional-details::before { background: #e65100; }
@@ -200,6 +201,7 @@ h3 {
 h3 i { color: var(--accent-color); font-size: 1.1rem; }
 
 /* Per-section h3 icon colors */
+.about-me h3 i             { color: #0097a7; }
 .personal-info h3 i        { color: #2962ff; }
 .religious-profile h3 i    { color: #2e7d52; }
 .professional-details h3 i { color: #e65100; }
@@ -207,6 +209,47 @@ h3 i { color: var(--accent-color); font-size: 1.1rem; }
 .family-background h3 i    { color: #008080; }
 .partner-expectations h3 i { color: #c2185b; }
 .lifestyle h3 i            { color: #f57f17; }
+
+/* About Me section */
+.about-me-text {
+  color: var(--text-color);
+  font-size: 0.92rem;
+  line-height: 1.75;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Dowry callout */
+.dowry-callout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-left: 4px solid #16a34a;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #15803d;
+}
+.dowry-callout i { font-size: 1rem; flex-shrink: 0; }
+
+/* Assets sub-section (injected via JS when show_plot is on) */
+.assets-section { margin-top: 14px; }
+.assets-heading {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.assets-heading i { color: #008080; font-size: 0.8rem; }
 
 /* Info Grid */
 .info-grid {
@@ -223,6 +266,7 @@ h3 i { color: var(--accent-color); font-size: 1.1rem; }
   transition: transform 0.2s;
 }
 .info-item:hover { transform: translateY(-2px); }
+.info-item-full { display: block; width: 100%; box-sizing: border-box; }
 
 .label {
   font-weight: 500;
@@ -611,6 +655,7 @@ html[data-theme="dark"] {
 html[data-theme="dark"] body { background: #0d1117; }
 
 /* Section icon colors — brightened for dark backgrounds */
+html[data-theme="dark"] .about-me h3 i             { color: #22d3ee; }
 html[data-theme="dark"] .personal-info h3 i        { color: #60a5fa; }
 html[data-theme="dark"] .religious-profile h3 i    { color: #4ade80; }
 html[data-theme="dark"] .professional-details h3 i { color: #fb923c; }
@@ -618,6 +663,11 @@ html[data-theme="dark"] .academic-profile h3 i     { color: #c084fc; }
 html[data-theme="dark"] .family-background h3 i    { color: #2dd4bf; }
 html[data-theme="dark"] .partner-expectations h3 i { color: #f472b6; }
 html[data-theme="dark"] .lifestyle h3 i            { color: #fbbf24; }
+html[data-theme="dark"] .dowry-callout {
+  background: #052e16;
+  border-color: #166534;
+  color: #4ade80;
+}
 
 /* Family type card icons */
 html[data-theme="dark"] .ftc-green  { background: #1a2e24; color: #6ee7b7; }
