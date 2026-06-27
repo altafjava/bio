@@ -450,7 +450,7 @@ function initAdmin(cfg) {
 
       html += `<tr class="session-row${isExpanded ? ' session-expanded' : ''}" data-session="${sessionId}">
         <td class="mono muted" data-label="#">${idx}</td>
-        <td data-label="Recipient">${recipTag(allTags)}</td>
+        <td class="col-recip" data-label="Recipient">${recipTag(allTags)}</td>
         <td class="mono sm" data-label="Last Seen">${fmtDate(latest.visited_at, true)}</td>
         <td class="mono accent" data-label="IPv4">${latest.ipv4 || '—'}</td>
         <td data-label="Location">${location}</td>
@@ -593,7 +593,7 @@ function initAdmin(cfg) {
 
       return `<tr class="recip-row">
         <td class="mono muted" data-label="#">${i + 1}</td>
-        <td style="font-weight:600;color:#4f46e5" data-label="Recipient">🏷️ ${rec.tag}</td>
+        <td class="col-recip" style="font-weight:600;color:#4f46e5" data-label="Recipient">🏷️ ${rec.tag}</td>
         <td class="mono" data-label="Visits">${v.length} <span class="muted">(${sessions} session${sessions > 1 ? 's' : ''})</span></td>
         <td class="mono sm" data-label="First Seen">${fmtDate(rec.firstSeen, true)}</td>
         <td class="mono sm" data-label="Last Seen">${fmtDate(rec.lastSeen, true)}</td>
@@ -836,7 +836,7 @@ function initAdmin(cfg) {
 
       html += `<tr class="gl-recip-row${isExpanded ? ' expanded' : ''}" data-tag="${rec.tag}">
         <td class="mono muted">${i + 1}</td>
-        <td style="font-weight:600;color:#7c3aed">🏷️ ${rec.tag}</td>
+        <td class="col-recip" style="font-weight:600;color:#7c3aed">🏷️ ${rec.tag}</td>
         <td class="mono sm">${fmtDate(rec.lastSeen, true)}</td>
         <td class="mono">${photoCount} photo${photoCount !== 1 ? 's' : ''}</td>
         <td class="mono">${rec.totalViews}</td>

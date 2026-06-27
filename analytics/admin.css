@@ -308,6 +308,7 @@ tbody tr{border-bottom:1px solid var(--border);transition:background 0.12s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:#f8f9fd}
 tbody td{padding:11px 14px;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+td.col-recip{max-width:none;overflow:visible;white-space:nowrap}
 .empty-cell{text-align:center;color:var(--muted);padding:60px!important;font-size:13px}
 
 /* ── TAGS ── */
@@ -321,7 +322,7 @@ tbody td{padding:11px 14px;max-width:160px;overflow:hidden;text-overflow:ellipsi
 .tag-gps     {background:#ecfdf5;color:#065f46}
 .tag-repeat  {background:#fef9c3;color:#854d0e}
 .tag-new     {background:var(--indigo-l);color:var(--indigo)}
-.tag-recip   {background:#f5f3ff;color:#6d28d9;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag-recip   {background:#f5f3ff;color:#6d28d9;white-space:nowrap}
 
 /* ── Mobile Recipients HTML List ── */
 .recipients-list{width:100%;display:flex;flex-direction:column;gap:6px;padding:4px 0}
@@ -385,6 +386,7 @@ tbody td{padding:11px 14px;max-width:160px;overflow:hidden;text-overflow:ellipsi
   table{font-size:11.5px}
   thead th{padding:8px 10px}
   tbody td{padding:8px 10px;max-width:120px}
+  td.col-recip{max-width:none}
   .search-input{font-size:12px;padding:7px 12px}
   .topbar{padding:12px 14px;gap:10px}
 }
@@ -589,7 +591,7 @@ tbody td{padding:11px 14px;max-width:160px;overflow:hidden;text-overflow:ellipsi
 }
 
 /* ── tag-recip (inline style in html) ── */
-.tag-recip{background:#ede9fe;color:#6d28d9;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+.tag-recip{background:#ede9fe;color:#6d28d9;white-space:nowrap}
 
 /* ── Profile Settings panel ────────────────────────────── */
 .settings-card{
