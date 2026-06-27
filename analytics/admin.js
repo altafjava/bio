@@ -750,7 +750,7 @@ function initAdmin(cfg) {
   // times, total duration, per-view timestamp+duration, zoom %.
   let expandedGlRecips = new Set();
 
-  function renderPhotoActivity(events) {
+  function renderPhotoActivity(events, visits) {
     const tbody = document.getElementById('gl-activity-tbody');
     if (!tbody) return;
     if (!events || !events.length) {
@@ -765,21 +765,44 @@ function initAdmin(cfg) {
       return;
     }
 
-    // Build: tag → photo → { views:[], zooms: N }
+    // Build session identity lookup from visits rows
+    const sessionMap = new Map();
+    (visits || []).forEach(v => {
+      if (v.session_id) sessionMap.set(v.session_id, {
+        ipv4: v.ipv4 || '',
+        city: v.city || '',
+        country: v.country || '',
+        device_type: v.device_type || '',
+        browser: v.browser || '',
+      });
+    });
+
+    // Build: tag → session_id → photo → { views:[], zoomEvents:[], zooms:N }
     const byTag = {};
     tagged.forEach(e => {
-      const t = e.recipient_tag;
-      const p = e.photo_name || 'unknown';
-      if (!byTag[t]) byTag[t] = { tag: t, photos: {}, totalViews: 0, totalZooms: 0, totalDur: 0, lastSeen: e.visited_at };
-      if (!byTag[t].photos[p]) byTag[t].photos[p] = { name: p, views: [], zoomEvents: [], zooms: 0 };
+      const t   = e.recipient_tag;
+      const sid = e.session_id;
+      const p   = e.photo_name || 'unknown';
+
+      if (!byTag[t]) byTag[t] = { tag: t, sessions: {}, totalViews: 0, totalZooms: 0, totalDur: 0, lastSeen: e.visited_at };
+
+      if (!byTag[t].sessions[sid]) byTag[t].sessions[sid] = {
+        sid, photos: {}, firstSeen: e.visited_at, lastSeen: e.visited_at,
+        ipv4Fallback: e.ipv4 || '',
+      };
+
+      const sess = byTag[t].sessions[sid];
+      if (!sess.photos[p]) sess.photos[p] = { name: p, views: [], zoomEvents: [], zooms: 0 };
+
+      if (e.visited_at < sess.firstSeen) sess.firstSeen = e.visited_at;
+      if (e.visited_at > sess.lastSeen)  sess.lastSeen  = e.visited_at;
 
       if (e.event_type === 'view') {
-        byTag[t].photos[p].views.push({ at: e.visited_at, dur: 0, hasZoom: false });
+        sess.photos[p].views.push({ at: e.visited_at, dur: 0 });
         byTag[t].totalViews++;
       }
       if (e.event_type === 'view_end') {
-        // Attach duration + zoomPct to the most recent view entry for this photo
-        const vl = byTag[t].photos[p].views;
+        const vl = sess.photos[p].views;
         if (vl.length) {
           if (e.duration_seconds > 0) {
             vl[vl.length - 1].dur = e.duration_seconds;
@@ -787,24 +810,18 @@ function initAdmin(cfg) {
           }
           if (e.zoom_pct > 0) {
             vl[vl.length - 1].zoomPct = e.zoom_pct;
-            // Also update maxZoomPct for this photo
-            if (!byTag[t].photos[p].maxZoomPct || e.zoom_pct > byTag[t].photos[p].maxZoomPct) {
-              byTag[t].photos[p].maxZoomPct = e.zoom_pct;
-            }
+            if (!sess.photos[p].maxZoomPct || e.zoom_pct > sess.photos[p].maxZoomPct)
+              sess.photos[p].maxZoomPct = e.zoom_pct;
           }
         }
       }
       if (e.event_type === 'zoom') {
-        byTag[t].photos[p].zooms++;
+        sess.photos[p].zooms++;
         byTag[t].totalZooms++;
-        // Read zoom level: prefer zoom_pct, fall back to duration_seconds (carrier field)
-        const zLevel = (e.zoom_pct > 0 ? e.zoom_pct : (e.duration_seconds > 100 ? e.duration_seconds : 0));
-        // Store each zoom as its own event entry
-        byTag[t].photos[p].zoomEvents.push({ at: e.visited_at, zoomPct: zLevel });
-        // Track max zoom for the photo header
-        if (zLevel > 0 && zLevel > (byTag[t].photos[p].maxZoomPct || 0)) {
-          byTag[t].photos[p].maxZoomPct = zLevel;
-        }
+        const zLevel = e.zoom_pct > 0 ? e.zoom_pct : (e.duration_seconds > 100 ? e.duration_seconds : 0);
+        sess.photos[p].zoomEvents.push({ at: e.visited_at, zoomPct: zLevel });
+        if (zLevel > 0 && zLevel > (sess.photos[p].maxZoomPct || 0))
+          sess.photos[p].maxZoomPct = zLevel;
       }
       if (e.visited_at > byTag[t].lastSeen) byTag[t].lastSeen = e.visited_at;
     });
@@ -813,8 +830,9 @@ function initAdmin(cfg) {
 
     let html = '';
     sorted.forEach((rec, i) => {
-      const photoCount = Object.keys(rec.photos).length;
-      const isExpanded = expandedGlRecips.has(rec.tag);
+      const photoCount   = new Set(Object.values(rec.sessions).flatMap(s => Object.keys(s.photos))).size;
+      const sessionCount = Object.keys(rec.sessions).length;
+      const isExpanded   = expandedGlRecips.has(rec.tag);
 
       html += `<tr class="gl-recip-row${isExpanded ? ' expanded' : ''}" data-tag="${rec.tag}">
         <td class="mono muted">${i + 1}</td>
@@ -827,44 +845,67 @@ function initAdmin(cfg) {
       </tr>`;
 
       if (isExpanded) {
-        const photosArr = Object.values(rec.photos).sort((a, b) => b.views.length - a.views.length);
-        const blocksHtml = photosArr.map(ph => {
-          const totalDur = ph.views.reduce((s, v) => s + (v.dur || 0), 0);
-          const zoomPct  = ph.views.length > 0 ? Math.round(ph.zooms / ph.views.length * 100) : 0;
+        // Sort sessions by first visit time (oldest first = visitor 1, 2, 3…)
+        const sessionsArr = Object.values(rec.sessions).sort((a, b) => new Date(a.firstSeen) - new Date(b.firstSeen));
 
-          // View session rows
-          const viewRows = ph.views.map((v, vi) => `
-            <div class="gl-view-row">
-              <div class="gl-view-num gl-view-type-view" title="View">👁</div>
-              <span class="gl-view-time">${fmtDate(v.at, true)}</span>
-              ${v.dur > 0 ? `<span class="gl-view-dur">⏱ ${fmtDur(v.dur)}</span>` : '<span class="gl-view-dur" style="opacity:0.4">⏱ —</span>'}
-            </div>`).join('');
+        const sessionsHtml = sessionsArr.map((sess, si) => {
+          const info   = sessionMap.get(sess.sid) || {};
+          const ip     = info.ipv4 || sess.ipv4Fallback || '—';
+          const city   = info.city || '';
+          const country = info.country || '';
+          const device = info.device_type || '';
+          const browser = info.browser || '';
+          const location = [city, country].filter(Boolean).join(', ') || '—';
+          const deviceIcon = device === 'Mobile' ? '📱' : device === 'Tablet' ? '📟' : device === 'Desktop' ? '💻' : '🖥';
 
-          // Zoom event rows — each zoom as its own line
-          const zoomRows = (ph.zoomEvents || []).map((z, zi) => `
-            <div class="gl-view-row gl-zoom-row">
-              <div class="gl-view-num gl-view-type-zoom" title="Zoom">🔍</div>
-              <span class="gl-view-time">${fmtDate(z.at, true)}</span>
-              ${z.zoomPct > 0 ? `<span class="gl-view-zoom">× ${(z.zoomPct/100).toFixed(1)} zoom</span>` : '<span class="gl-view-zoom">zoomed</span>'}
-            </div>`).join('');
+          const photosArr = Object.values(sess.photos).sort((a, b) => b.views.length - a.views.length);
 
-          return `<div class="gl-photo-block">
-            <div class="gl-photo-block-hdr">
-              <span class="gl-photo-name">📷 ${ph.name}</span>
-              <div class="gl-photo-meta">
-                <span class="gl-meta-pill gl-meta-views">👁 ${ph.views.length} view${ph.views.length !== 1 ? 's' : ''}</span>
-                ${ph.zooms > 0 ? `<span class="gl-meta-pill gl-meta-zooms">🔍 ${ph.zooms} zoom${ph.zooms !== 1 ? 's' : ''}${ph.maxZoomPct ? ' · max ' + (ph.maxZoomPct/100).toFixed(1) + '×' : ''}</span>` : ''}
-                ${totalDur > 0 ? `<span class="gl-meta-pill gl-meta-dur">⏱ ${fmtDur(totalDur)} total</span>` : ''}
+          const photosHtml = photosArr.map(ph => {
+            const totalDur = ph.views.reduce((s, v) => s + (v.dur || 0), 0);
+
+            const viewRows = ph.views.map(v => `
+              <div class="gl-view-row">
+                <div class="gl-view-num gl-view-type-view" title="View">👁</div>
+                <span class="gl-view-time">${fmtDate(v.at, true)}</span>
+                ${v.dur > 0 ? `<span class="gl-view-dur">⏱ ${fmtDur(v.dur)}</span>` : '<span class="gl-view-dur" style="opacity:0.4">⏱ —</span>'}
+              </div>`).join('');
+
+            const zoomRows = (ph.zoomEvents || []).map(z => `
+              <div class="gl-view-row gl-zoom-row">
+                <div class="gl-view-num gl-view-type-zoom" title="Zoom">🔍</div>
+                <span class="gl-view-time">${fmtDate(z.at, true)}</span>
+                ${z.zoomPct > 0 ? `<span class="gl-view-zoom">× ${(z.zoomPct/100).toFixed(1)} zoom</span>` : '<span class="gl-view-zoom">zoomed</span>'}
+              </div>`).join('');
+
+            return `<div class="gl-photo-block">
+              <div class="gl-photo-block-hdr">
+                <span class="gl-photo-name">📷 ${ph.name}</span>
+                <div class="gl-photo-meta">
+                  <span class="gl-meta-pill gl-meta-views">👁 ${ph.views.length} view${ph.views.length !== 1 ? 's' : ''}</span>
+                  ${ph.zooms > 0 ? `<span class="gl-meta-pill gl-meta-zooms">🔍 ${ph.zooms} zoom${ph.zooms !== 1 ? 's' : ''}${ph.maxZoomPct ? ' · max ' + (ph.maxZoomPct/100).toFixed(1) + '×' : ''}</span>` : ''}
+                  ${totalDur > 0 ? `<span class="gl-meta-pill gl-meta-dur">⏱ ${fmtDur(totalDur)} total</span>` : ''}
+                </div>
               </div>
+              <div class="gl-view-list">${viewRows}${zoomRows}</div>
+            </div>`;
+          }).join('');
+
+          return `<div class="gl-session-block">
+            <div class="gl-session-hdr">
+              <span class="gl-session-num">visitor ${si + 1}</span>
+              <span class="gl-session-device">${deviceIcon}${browser ? ' ' + browser : ''}${device ? ' · ' + device : ''}</span>
+              <span class="gl-session-ip mono">${ip}</span>
+              <span class="gl-session-loc">${location}</span>
+              <span class="gl-session-time">${fmtDate(sess.firstSeen, true)}</span>
             </div>
-            <div class="gl-view-list">${viewRows}${zoomRows}</div>
+            <div class="gl-session-photos">${photosHtml}</div>
           </div>`;
         }).join('');
 
         html += `<tr class="gl-drill-row"><td colspan="7">
           <div class="gl-drill-card">
-            <div class="gl-drill-title">Photo sessions for 🏷️ ${rec.tag}</div>
-            ${blocksHtml}
+            <div class="gl-drill-title">Photo sessions for 🏷️ ${rec.tag} · ${sessionCount} visitor${sessionCount !== 1 ? 's' : ''}</div>
+            ${sessionsHtml}
           </div>
         </td></tr>`;
       }
@@ -876,7 +917,7 @@ function initAdmin(cfg) {
         const tag = row.dataset.tag;
         if (expandedGlRecips.has(tag)) expandedGlRecips.delete(tag);
         else expandedGlRecips.add(tag);
-        renderPhotoActivity(events);
+        renderPhotoActivity(events, visits);
       });
     });
   }
@@ -921,7 +962,7 @@ function initAdmin(cfg) {
       renderDevices(allRows);
       renderGeo(allRows);
       renderGallery(allGallery);
-      renderPhotoActivity(allGallery);
+      renderPhotoActivity(allGallery, allRows);
 
       document.getElementById('last-updated').textContent =
         new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
@@ -987,7 +1028,7 @@ function initAdmin(cfg) {
         if (sec === 'geo')             renderGeo(allRows);
         if (sec === 'recipients')      renderRecipients(allRows, allGallery);
         if (sec === 'gallery')         renderGallery(allGallery);
-        if (sec === 'photo-activity')  renderPhotoActivity(allGallery);
+        if (sec === 'photo-activity')  renderPhotoActivity(allGallery, allRows);
       }
     });
   });
