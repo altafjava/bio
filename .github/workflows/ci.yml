@@ -24,7 +24,7 @@ jobs:
       - name: Reset commit author for Vercel deploy
         run: |
           git config user.email "samaltaf6@gmail.com"
-          git config user.name "altafjav"
+          git config user.name "altafjava"
           git commit --amend --no-edit --reset-author
 
       - name: Install Vercel CLI
