@@ -21,6 +21,7 @@
       if (localStorage.getItem('_bd_theme') === 'dark')
         document.documentElement.setAttribute('data-theme', 'dark');
     </script>
+    <script src="config.js" defer></script>
     <script src="script.js" defer></script>
     <script src="analytics/config.js" defer></script>
     <script src="analytics/biodata.js" defer></script>
@@ -87,7 +88,7 @@
             </div>
             <div class="info-item">
               <span class="label">Date of Birth</span>
-              <span class="value">October 1994 · <span id="bio-age"></span></span>
+              <span class="value"><span id="bio-dob-text"></span> · <span id="bio-age"></span></span>
             </div>
             <div class="info-item">
               <span class="label">Height</span>
@@ -161,7 +162,7 @@
             </div>
             <div class="info-item">
               <span class="label">Total Experience</span>
-              <span class="value">8 Years</span>
+              <span class="value" id="bio-experience"></span>
             </div>
             <div class="info-item">
               <span class="label">Work Location</span>
@@ -184,7 +185,7 @@
           <h3><i class="fas fa-graduation-cap"></i> Academic Profile</h3>
           <div class="education-timeline">
             <div class="education-item">
-              <div class="year">2017</div>
+              <div class="year" data-real-year="2017"></div>
               <div class="details">
                 <h4>B.TECH (CSE)</h4>
                 <p>JNTU Hyderabad</p>
@@ -192,7 +193,7 @@
               </div>
             </div>
             <div class="education-item">
-              <div class="year">2013</div>
+              <div class="year" data-real-year="2013"></div>
               <div class="details">
                 <h4>Diploma (CSE)</h4>
                 <p>SBTE Jharkhand</p>
@@ -200,7 +201,7 @@
               </div>
             </div>
             <div class="education-item">
-              <div class="year">2010</div>
+              <div class="year" data-real-year="2010"></div>
               <div class="details">
                 <h4>10th</h4>
                 <p>JAC (Jharkhand Board)</p>
@@ -253,6 +254,7 @@
                 <h5><i class="fas fa-user-tie"></i> Elder Sister</h5>
                 <p>Noor</p>
                 <p class="occupation">Govt Teacher in Bihar</p>
+                <p class="qualification">CTET Qualified</p>
                 <p class="qualification">B.ED, M.A, B.A</p>
                 <p class="status"><i class="fas fa-heart"></i> Married</p>
               </div>
@@ -260,6 +262,7 @@
                 <h5><i class="fas fa-user-graduate"></i> Younger Sister</h5>
                 <p>Nargish</p>
                 <p class="occupation">Preparing for Government Exams</p>
+                <p class="qualification">CTET Qualified</p>
                 <p class="qualification">B.ED, M.A, B.A</p>
                 <p class="status"><i class="fas fa-heart"></i> Married</p>
               </div>

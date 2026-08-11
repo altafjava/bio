@@ -51,14 +51,34 @@ function handlePhoneClick(event) {
   event.preventDefault();
 }
 
-// Auto-compute and display age from fixed birth month/year
+// Auto-compute Age, Date of Birth text, Academic Profile years, and Total
+// Experience from real facts + a single shift knob (window.BIODATA_CONFIG).
+// No derived number is ever hardcoded — only real years go in, everything
+// displayed is computed here.
 (function () {
-  var el = document.getElementById('bio-age');
-  if (!el) return;
+  var cfg = window.BIODATA_CONFIG;
+  if (!cfg) return;
+
+  var MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+
   var now = new Date();
-  // October = month index 9 (0-based)
-  var age = now.getFullYear() - 1994 - (now.getMonth() < 9 ? 1 : 0);
-  el.textContent = age + ' years';
+  var shift = cfg.ageShiftYears || 0;
+  var displayBirthYear = cfg.realBirthYear + shift;
+  var age = now.getFullYear() - displayBirthYear - (now.getMonth() < (cfg.realBirthMonth - 1) ? 1 : 0);
+
+  var ageEl = document.getElementById('bio-age');
+  if (ageEl) ageEl.textContent = age + ' years';
+
+  var dobEl = document.getElementById('bio-dob-text');
+  if (dobEl) dobEl.textContent = MONTH_NAMES[cfg.realBirthMonth - 1] + ' ' + displayBirthYear;
+
+  var experienceEl = document.getElementById('bio-experience');
+  if (experienceEl) experienceEl.textContent = (now.getFullYear() - cfg.realCareerStartYear - shift) + ' Years';
+
+  document.querySelectorAll('.year[data-real-year]').forEach(function (el) {
+    el.textContent = Number(el.dataset.realYear) + shift;
+  });
 })();
 
 function showToast(message) {
